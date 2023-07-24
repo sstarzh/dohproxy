@@ -8,7 +8,7 @@ try:
     url = sys.argv[1]
     tenant_id = sys.argv[2]
 except:
-    print("Please provide a valid URL of DoH server")
+    print("Please provide a valid URL of DoH server and tenant ID")
     sys.exit()
 
 server_socket = None
