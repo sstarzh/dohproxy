@@ -7,8 +7,9 @@ import sys
 try:
     url = sys.argv[1]
     tenant_id = sys.argv[2]
+    service_key = sys.argv[3]
 except:
-    print("Please provide a valid URL of DoH server and tenant ID")
+    print("Please provide a valid URL of DoH server, tenant ID and DoH service key")
     sys.exit()
 
 server_socket = None
@@ -34,7 +35,7 @@ def dns_request_handler(data, client_address):
         # Convert the DNS query to JSON and send it via DoH POST request
         #doh_server_url = "https://cloudflare-dns.com/dns-query" + "?name=" + domain # Replace with your desired DoH server URL
         doh_server_url = url + "?name=" + domain
-        headers = {'Content-Type': 'application/dns-json','x-ns-ext-tenant-id': tenant_id}
+        headers = {'Content-Type': 'application/dns-json','x-ns-ext-tenant-id': tenant_id, 'Authentication': 'Bearer'+ service_key}
         #headers = {'Content-Type': 'application/dns-json'}
         #response = requests.get(doh_server_url, headers=headers)
         response = requests.post(doh_server_url, json=dns_query, headers=headers)
