@@ -6,10 +6,9 @@ import sys
 
 try:
     url = sys.argv[1]
-    tenant_id = sys.argv[2]
-    service_key = sys.argv[3]
+    service_key = sys.argv[2]
 except:
-    print("Please provide a valid URL of DoH server, tenant ID and DoH service key")
+    print("Please provide a valid URL of DoH server and DoH service key")
     sys.exit()
 
 server_socket = None
