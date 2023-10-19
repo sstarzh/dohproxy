@@ -3,6 +3,8 @@ import threading
 import dnslib
 import requests
 import sys
+import requests.adapters
+
 
 try:
     url = sys.argv[1]
@@ -34,12 +36,14 @@ def dns_request_handler(data, client_address):
         # Convert the DNS query to JSON and send it via DoH POST request
         #doh_server_url = "https://cloudflare-dns.com/dns-query" + "?name=" + domain # Replace with your desired DoH server URL
         #doh_server_url = url + "/?authorization=" + service_key
+        session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
+        session.mount('https://', adapter)
         doh_server_url = url
         headers = {'Content-Type': 'application/dns-message', 'Authorization': 'Bearer '+ service_key}
-        #headers = {'Content-Type': 'application/dns-json'}
-        #response = requests.get(doh_server_url, headers=headers)
-        response = requests.post(doh_server_url, data=data, headers=headers)
+        response = session.post(doh_server_url, data=data, headers=headers)
         req = response.request
+        parsed_req = dnslib.DNSRecord.parse(bytes(req.body))
         print('{}\n{}\r\n{}\r\n\r\n{}'.format(
         '-----------REQUEST-----------',
         req.method + ' ' + req.url,
@@ -54,10 +58,13 @@ def dns_request_handler(data, client_address):
         ))
         # Extract the response from the DoH server
         doh_response = dnslib.DNSRecord.parse(bytes(response.content))
+        doh_response.header.ra = 1
+        doh_response.header.rd = parsed_req.header.rd
+        doh_response.questions = parsed_req.questions
         print("Response: " + str(doh_response))
         
         # Send the DNS response back to the client
-        server_socket.sendto(response.content, client_address)
+        server_socket.sendto(doh_response.pack(), client_address)
 
     except Exception as e:
         print(f"Error occurred while processing DNS request: {e}")
