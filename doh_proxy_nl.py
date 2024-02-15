@@ -11,15 +11,9 @@ from datetime import datetime
 try:
     url = sys.argv[1]
     service_key = sys.argv[2]
-            
 except:
     print("Please provide a valid URL of DoH server and DoH service key")
     sys.exit()
-try:
-    site = sys.argv[3]
-
-except:
-    site = 'default'
 
 server_socket = None
 
@@ -45,33 +39,30 @@ def dns_request_handler(data, client_address):
         #doh_server_url = "https://cloudflare-dns.com/dns-query" + "?name=" + domain # Replace with your desired DoH server URL
         #doh_server_url = url + "/?authorization=" + service_key
         session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
+        adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
         session.mount('https://', adapter)
         doh_server_url = url
-        headers = {'Content-Type': 'application/dns-message', 'Accept' : 'application/dns-message', 'Authorization': 'Bearer '+ service_key}
+        headers = {'Content-Type': 'application/dns-message', 'Authorization': 'Bearer '+ service_key}
         now = datetime.now()
-        response = session.post(doh_server_url, data=data, headers=headers, verify=True)
+        response = session.post(doh_server_url, data=data, headers=headers)
         #elapsed = now + response.elapsed
         print(f"Response time: {response.elapsed.total_seconds()*1000.0:.2f} ms")
-        print(f"Response status code: {response.status_code}")
-        req = response.request
+        #req = response.request
         #parsed_req = dnslib.DNSRecord.parse(bytes(req.body))
-        print('{}\n{}\r\n{}\r\n\r\n{}'.format(
-        '-----------REQUEST-----------',
-        req.method + ' ' + req.url,
-        '\r\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
-        str(dnslib.DNSRecord.parse(bytes(req.body))),
-        #str(req.body),
-        ))
-        print('{}\n{}\r\n{}\r\n\r\n{}'.format(
-        '-----------RESPONSE-----------',
-        str(response.status_code) + ' ' + response.reason,
-        '\r\n'.join('{}: {}'.format(k, v) for k, v in response.headers.items()),
-        str(dnslib.DNSRecord.parse(bytes(response.content))),
-        #str(response.content),
-        ))
+        #print('{}\n{}\r\n{}\r\n\r\n{}'.format(
+        #'-----------REQUEST-----------',
+        #req.method + ' ' + req.url,
+        #'\r\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
+        #str(dnslib.DNSRecord.parse(bytes(req.body))),
+        #))
+        #print('{}\n{}\r\n{}\r\n\r\n{}'.format(
+        #'-----------RESPONSE-----------',
+        print(str(response.status_code) + ' ' + response.reason)
+        #'\r\n'.join('{}: {}'.format(k, v) for k, v in response.headers.items()),
+        #str(dnslib.DNSRecord.parse(bytes(response.content))),
+        #))
         # Extract the response from the DoH server
-        doh_response = dnslib.DNSRecord.parse(bytes(response.content))
+        #doh_response = dnslib.DNSRecord.parse(bytes(response.content))
         #doh_response = dnslib.DNSRecord.parse(bytes(response.content)).reply()
         #doh_response.header.ra = 1
         #doh_response.header.rd = parsed_req.header.rd
@@ -79,8 +70,8 @@ def dns_request_handler(data, client_address):
         #print("Response: " + str(dnslib.DNSRecord.parse(doh_response.pack())))
         
         # Send the DNS response back to the client
-        server_socket.sendto(doh_response.pack(), client_address)
-        #server_socket.sendto(response.content, client_address)
+        #server_socket.sendto(doh_response.pack(), client_address)
+        server_socket.sendto(response.content, client_address)
 
     except Exception as e:
         print(f"Error occurred while processing DNS request: {e}")
@@ -100,3 +91,5 @@ def dns_server():
 
 if __name__ == "__main__":
     dns_server()
+
+

@@ -11,15 +11,9 @@ from datetime import datetime
 try:
     url = sys.argv[1]
     service_key = sys.argv[2]
-            
 except:
     print("Please provide a valid URL of DoH server and DoH service key")
     sys.exit()
-try:
-    site = sys.argv[3]
-
-except:
-    site = 'default'
 
 server_socket = None
 
@@ -45,12 +39,12 @@ def dns_request_handler(data, client_address):
         #doh_server_url = "https://cloudflare-dns.com/dns-query" + "?name=" + domain # Replace with your desired DoH server URL
         #doh_server_url = url + "/?authorization=" + service_key
         session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
+        adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20)
         session.mount('https://', adapter)
         doh_server_url = url
         headers = {'Content-Type': 'application/dns-message', 'Accept' : 'application/dns-message', 'Authorization': 'Bearer '+ service_key}
         now = datetime.now()
-        response = session.post(doh_server_url, data=data, headers=headers, verify=True)
+        response = session.post(doh_server_url, data=data, headers=headers)
         #elapsed = now + response.elapsed
         print(f"Response time: {response.elapsed.total_seconds()*1000.0:.2f} ms")
         print(f"Response status code: {response.status_code}")
@@ -71,9 +65,19 @@ def dns_request_handler(data, client_address):
         #str(response.content),
         ))
         # Extract the response from the DoH server
+        doh_content = dnslib.DNSRecord.parse(bytes(response.request.body))
         doh_response = dnslib.DNSRecord.parse(bytes(response.content))
-        #doh_response = dnslib.DNSRecord.parse(bytes(response.content)).reply()
-        #doh_response.header.ra = 1
+        #if (doh_content.questions[0].qname == "gambling.com")&(doh_content.questions[0].qtype == 65):
+        if doh_content.questions[0].qname == "gambling.com":
+            print("Responding locally...")
+            doh_response = doh_content.reply()
+            #doh_response.add_answer(dnslib.RR("gambling.com", dnslib.QTYPE.CNAME, rdata=dnslib.CNAME("dohstar.ericomcloud.net"),ttl=60))
+            doh_response.add_answer(dnslib.RR("gambling.com", dnslib.QTYPE.HTTPS, rdata=dnslib.HTTPS.fromZone(["1", "ericom.com.", "ipv4hint=141.193.213.10,141.193.213.11"]),ttl=60))
+            doh_response.add_answer(dnslib.RR("ericom.com", dnslib.QTYPE.A, rdata=dnslib.A("141.193.213.10"),ttl=60))
+            #doh_response.add_answer(dnslib.RR(dnslib.QTYPE.A, dnslib.RDATA.A("129.159.83.117"), ttl=60))
+            doh_response.header.ra = 1
+            doh_response.header.rd = 1
+
         #doh_response.header.rd = parsed_req.header.rd
         #doh_response.questions = parsed_req.questions 
         #print("Response: " + str(dnslib.DNSRecord.parse(doh_response.pack())))
@@ -100,3 +104,5 @@ def dns_server():
 
 if __name__ == "__main__":
     dns_server()
+
+

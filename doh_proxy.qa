@@ -48,7 +48,7 @@ def dns_request_handler(data, client_address):
         adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
         session.mount('https://', adapter)
         doh_server_url = url
-        headers = {'Content-Type': 'application/dns-message', 'Accept' : 'application/dns-message', 'Authorization': 'Bearer '+ service_key}
+        headers = {'virtual-site-name': site, 'Content-Type': 'application/dns-message', 'Accept' : 'application/dns-message', 'Authorization': 'Bearer '+ service_key}
         now = datetime.now()
         response = session.post(doh_server_url, data=data, headers=headers, verify=True)
         #elapsed = now + response.elapsed
